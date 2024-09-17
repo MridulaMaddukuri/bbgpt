@@ -33,9 +33,13 @@ uv add torch numpy tqdm transformers tiktoken wandb datasets
 
 ## Notes
 
+- Download tiny shakespeare dataset
+`wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt`
 - To check the cuda version on your machine, try 
 ```bash
 /usr/local/cuda/bin/nvcc --version
 or 
 nvcc --verison
 ```
+- To format files
+`uv run ruff format gpt.py` 
