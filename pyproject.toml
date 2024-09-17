@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pre-commit>=3.8.0",
-    "torch>=2.4.1",
+    "torch[gpu]>=2.4.1",
 ]
 
 [tool.uv]
