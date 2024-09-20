@@ -1,7 +1,5 @@
 # bbgpt
-Follow along Karpathy's video
-
-
+Follow along Karpathy's video and create an endpoint
 
 ## Getting started with the repository
 

@@ -11,6 +11,22 @@ import torch.nn.functional as F  # functional interface
 torch.manual_seed(1337)  # set seed for reproducibility
 
 
+# Initializations
+device = "cuda" if torch.cuda.is_available() else "cpu"
+n_embed = 32  # number of embeddings
+block_size = 8  # max number of tokens in the input sequence
+
+
+def get_batch():
+    # TODO
+    ...
+
+
+def estimate_loss():
+    # TODO: Add estimate_loss() function that returns avg loss
+    ...
+
+
 class BigramLanguageModel(nn.Module):
     """
     Bigram language model is a simple model that predicts the next token in a sequence given the previous token
@@ -19,9 +35,16 @@ class BigramLanguageModel(nn.Module):
     def __init__(self, vocab_size):
         super().__init__()  # inherit from nn.Module
         # watch bigram video in makemore series
+
+        # Initialize layers
         self.token_embedding_table = nn.Embedding(
-            vocab_size, vocab_size
+            vocab_size, n_embed
         )  # word embedding table
+
+        self.position_embedding_table = nn.Embedding(block_size, n_embed)
+
+        # lm_head is short for language modeling head
+        self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
         """
@@ -30,8 +53,13 @@ class BigramLanguageModel(nn.Module):
         Size of idx is (B, T) where B is the batch size and T is the sequence length
         Size of targets, if exists, is also (B, T)
         """
-
-        logits = self.token_embedding_table(idx)  # (B, T, C)
+        B, T = idx.shape
+        token_embedding = self.token_embedding_table(idx)  # (B, T, C)
+        position_embedding = self.position_embedding_table(
+            torch.arange(T, device=device)
+        )  # T, C
+        x = token_embedding + position_embedding  # ( B, T, C)
+        logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:
             loss = None
