@@ -15,6 +15,7 @@ torch.manual_seed(1337)  # set seed for reproducibility
 device = "cuda" if torch.cuda.is_available() else "cpu"
 n_embed = 32  # number of embeddings
 block_size = 8  # max number of tokens in the input sequence
+head_size = 16
 
 
 def get_batch():
@@ -25,6 +26,39 @@ def get_batch():
 def estimate_loss():
     # TODO: Add estimate_loss() function that returns avg loss
     ...
+
+
+class AttentionHead(nn.Module):
+    def __init__(self, head_size):
+        super().__init__()
+        self.key = nn.Linear(n_embed, head_size, bias=False)
+        self.query = nn.Linear(n_embed, head_size, bias=False)
+        self.value = nn.Linear(n_embed, head_size, bias=False)
+        # initialize tril
+        self.register_buffer(
+            "tril", torch.tril(torch.ones(block_size, block_size))
+        )  # same as T
+
+    def forward(self, x):
+        B, T, C = x.shape
+        k = self.key(x)  # B, T, head_size
+        q = self.query(x)  # B, T, head_size
+
+        # transpose the T, head_size dimensions. Wei is the initialization of "affinities" between tokens
+        wei = q @ k.transpose(-2, -1) * head_size**-0.5  # B, T , T
+        # since we do not want to reference future tokens
+        wei = wei.masked_fill(
+            self.trill[:T, :T] == 0, float("-inf")
+        )  # B, T, T. Mask upper triangular entries with -inf
+
+        # softmax
+        wei = F.softmax(wei, dim=-1)
+
+        v = self.value(x)  # B, T, head_size
+
+        out = wei @ v  # (B, T, T) @ (B, T, head_size) -->  (B, T, head_size)
+
+        return out
 
 
 class BigramLanguageModel(nn.Module):
@@ -45,6 +79,9 @@ class BigramLanguageModel(nn.Module):
 
         # lm_head is short for language modeling head
         self.lm_head = nn.Linear(n_embed, vocab_size)
+        self.sa_head = AttentionHead(
+            head_size=n_embed
+        )  # for simplicity setting head_size to be the same as n_embed
 
     def forward(self, idx, targets=None):
         """
@@ -59,6 +96,10 @@ class BigramLanguageModel(nn.Module):
             torch.arange(T, device=device)
         )  # T, C
         x = token_embedding + position_embedding  # ( B, T, C)
+
+        # incorporate attention
+        x = self.sa_head(x)
+
         logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:
@@ -103,3 +144,6 @@ class BigramLanguageModel(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
 
         return idx
+
+
+# checkpint: 1:20:29

@@ -86,6 +86,13 @@ print(wei[0])
 # unlike the versions above, wei has different weights in different positions
 # In the previous version, wei was initialized to a tensor with all 0's (T,T)
 
+# Scaled attention: scaling is used to control the variance at initialization
+print("variance of wei: ", wei.var())
+wei = wei / head_size**0.5  # normalizing by head_size
+print("variance of wei after normalization by head_size: ", wei.var())
+# Why is this important? because wei is feeding into softmax. So it's important that it is fairly diffused
+# if wei had highly positive or negative values, doftmax converges it to one-hot vectors
+
 tril = torch.tril(torch.ones(T, T))
 wei = wei.masked_fill(tril == 0, float("-inf"))
 wei = F.softmax(wei, dim=1)
@@ -93,3 +100,7 @@ v = value(x)  # (B, T, headsize)
 out = wei @ v  # (B, T, head_size)
 
 print(wei[0])
+
+"""
+This is called "self" attention because the keys, queries and the values are all coming from the same source `x`
+"""
